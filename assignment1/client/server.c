@@ -3,48 +3,58 @@
 #include <netdb.h> 
 #include <netinet/in.h> 
 #include <stdlib.h> 
+#include <signal.h>
 #include <string.h> 
 #include <sys/socket.h> 
 #include <sys/types.h> 
 #include <unistd.h>  
 
 
-#define MAX 80 
-#define PORT 8080 
+#define MAXLENGTH 100 
   
+
+char sendBuffer[MAXLENGTH] = {0};
+char recvBuffer[MAXLENGTH] = {0};
+int socket_fd;
+
+// Send the data to the server and set the timeout of 20 seconds
+void sendMsg(int serv_sock)
+{
+    int stat;
+    memset(sendBuffer, 0, sizeof(sendBuffer));
+    printf("Enter Message : ");
+    gets(sendBuffer);
+    stat = send(serv_sock, sendBuffer, strlen(sendBuffer), 0);
+}
+
+
+//receive the data from the server
+void recvMsg(int serv_sock){
+    // char reply[MAXLENGTH] = {0};
+    int msg;
+    memset(recvBuffer, 0, sizeof(recvBuffer));
+    msg = recv(serv_sock, recvBuffer, MAXLENGTH, 0);
+    printf("Response from client: %s\n",recvBuffer);
+}
+
 // Function designed for chat between client and server. 
-void func(int sock_desc) 
-{ 
-    char buff[MAX]; 
+void chat(int sock_desc){ 
     int n; 
     // infinite loop for chat 
     for (;;) { 
-        bzero(buff, MAX); 
-  
-        // read the message from client and copy it in buffer 
-        read(sock_desc, buff, sizeof(buff)); 
-        // print buffer which contains the client contents 
-        printf("From client: %s\t To client : ", buff); 
-        bzero(buff, MAX); 
-        n = 0; 
-        // copy server message in the buffer 
-        while ((buff[n++] = getchar()) != '\n') 
-            ; 
-  
-        // and send that buffer to client 
-        write(sock_desc, buff, sizeof(buff)); 
-  
-        // if msg contains "Exit" then server exit and chat ended. 
-        if (strncmp("exit", buff, 4) == 0) { 
-            printf("Server Exit...\n"); 
-            break; 
-        } 
+        recvMsg(sock_desc);
+        sendMsg(sock_desc);
     } 
 } 
+
+void terminate(int num){
+    close(socket_fd);
+    printf("\nClosing Socket. Exiting Application\n");
+    exit(0);
+}
   
 // Driver function 
-int main(int argc, char **argv) 
-{ 
+int main(int argc, char **argv){ 
 
     if(argc == 1){
         printf("Please supply a port number.\nExiting....\n");
@@ -56,15 +66,15 @@ int main(int argc, char **argv)
   
     // socket create and verification 
     sock_desc = socket(AF_INET, SOCK_STREAM, 0); 
-
+    socket_fd = sock_desc;
 
     if (sock_desc == -1) { 
         printf("Unable to create socket !!\nExitting....\n"); 
         exit(0); 
-    } else {
-        printf("Socket successfully created\n"); 
-    }
-
+    } 
+    
+    printf("Socket successfully created\n"); 
+    signal(SIGINT, terminate);
 
     memset(&servaddr, 0, sizeof(servaddr));
 
@@ -76,17 +86,16 @@ int main(int argc, char **argv)
     if ((bind(sock_desc, (struct sockaddr*)&servaddr, sizeof(servaddr))) != 0) { 
         printf("Socket binding Failed\n"); 
         exit(0); 
-    } else {
-        printf("Socket bound Succesfuly\n"); 
-    }
+    }    
+    printf("Socket bound Succesfuly\n"); 
   
     // Now server is ready to listen and verification 
     if ((listen(sock_desc, 5)) != 0) { 
         printf("Listen failed\n Exiting.....\n"); 
         exit(0); 
-    } else {
-        printf("Server listening on Port %i\n",atoi(portno)); 
     }
+    printf("Server listening on Port %i\n",atoi(portno)); 
+
 
     len = sizeof(cli); 
     // Accept the data packet from client and verification 
@@ -94,14 +103,12 @@ int main(int argc, char **argv)
     if (conn_desc < 0) { 
         printf("Client connection failed\n"); 
         exit(0); 
-    } else {
-        // printf("New client with IP %s Connected\n",inet_ntoa(cli.sin_port)); 
-
     }
-  
+    printf("Client Successfully Connected\n");
     // Function for chatting between client and server 
-    func(conn_desc); 
+    chat(conn_desc); 
   
     // After chatting close the socket 
     close(sock_desc); 
 } 
+

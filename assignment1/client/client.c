@@ -4,90 +4,108 @@
 #include<sys/socket.h>
 #include<arpa/inet.h>
 #include<unistd.h>
+#include <signal.h>
 
-//Create a Socket for server communication
-short SocketCreate(void)
-{
-    short hSocket;
-    printf("Create the socket\n");
-    hSocket = socket(AF_INET, SOCK_STREAM, 0);
-    return hSocket;
-}
-//try to connect with server
-int SocketConnect(int hSocket)
-{
-    int iRetval=-1;
-    int ServerPort = 8081;
-    struct sockaddr_in remote= {0};
-    remote.sin_addr.s_addr = inet_addr("127.0.0.1"); //Local Host
-    remote.sin_family = AF_INET;
-    remote.sin_port = htons(ServerPort);
-    iRetval = connect(hSocket,(struct sockaddr *)&remote,sizeof(struct sockaddr_in));
-    return iRetval;
-}
+
+#define MAXLENGTH 100
+
+char sendBuffer[MAXLENGTH] = {0};
+char recvBuffer[MAXLENGTH] = {0};
+int socket_fd;
+
+
 // Send the data to the server and set the timeout of 20 seconds
-int SocketSend(int hSocket,char* Rqst,short lenRqst)
+void sendMsg(int serv_sock)
 {
-    int shortRetval = -1;
-    struct timeval tv;
-    tv.tv_sec = 20;  /* 20 Secs Timeout */
-    tv.tv_usec = 0;
-    if(setsockopt(hSocket,SOL_SOCKET,SO_SNDTIMEO,(char *)&tv,sizeof(tv)) < 0)
-    {
-        printf("Time Out\n");
-        return -1;
-    }
-    shortRetval = send(hSocket, Rqst, lenRqst, 0);
-    return shortRetval;
+    int stat;
+    memset(sendBuffer, 0, sizeof(sendBuffer));
+    printf("Your Message : ");
+    gets(sendBuffer);
+    stat = send(serv_sock, sendBuffer, strlen(sendBuffer), 0);
 }
+
+
 //receive the data from the server
-int SocketReceive(int hSocket,char* Rsp,short RvcSize)
+void recvMsg(int serv_sock)
 {
-    int shortRetval = -1;
-    struct timeval tv;
-    tv.tv_sec = 20;  /* 20 Secs Timeout */
-    tv.tv_usec = 0;
-    if(setsockopt(hSocket, SOL_SOCKET, SO_RCVTIMEO,(char *)&tv,sizeof(tv)) < 0)
-    {
-        printf("Time Out\n");
-        return -1;
-    }
-    shortRetval = recv(hSocket, Rsp, RvcSize, 0);
-    printf("Response %s\n",Rsp);
-    return shortRetval;
+    // char reply[MAXLENGTH] = {0};
+    int msg;
+    memset(recvBuffer, 0, sizeof(recvBuffer));
+    msg = recv(serv_sock, recvBuffer, MAXLENGTH, 0);
+    printf("Response from server : %s\n" ,recvBuffer);
 }
+
+
+// Function designed for chat between client and server. 
+void chat(int sock_desc) 
+{ 
+    int n; 
+    // infinite loop for chat 
+    for (;;) { 
+        sendMsg(sock_desc);
+        recvMsg(sock_desc);
+    } 
+} 
+
+void terminate(int num){
+    close(socket_fd);
+    printf("\nClosing Socket. Exiting Application\n");
+    exit(0);
+}
+
 //main driver program
 int main(int argc, char *argv[])
 {
-    int hSocket, read_size;
-    struct sockaddr_in server;
-    char SendToServer[100] = {0};
-    char server_reply[200] = {0};
-    //Create socket
-    hSocket = SocketCreate();
-    if(hSocket == -1)
-    {
-        printf("Could not create socket\n");
-        return 1;
+
+
+    if(argc != 3){
+        printf("Incorrect Paramters. Please provide IP and Port. Exiting....");
+        exit(0);
     }
-    printf("Socket is created\n");
-    //Connect to remote server
-    if (SocketConnect(hSocket) < 0)
+
+    int portno = atoi(argv[2]);
+    char *ip = argv[1];
+
+    printf("IP is %s and Port Number is %i", ip, portno);
+
+
+    int serv_sock, read_size, conn_desc;
+    struct sockaddr_in server;
+    
+    //Create socket
+    printf("Create the socket\n");
+    serv_sock = socket(AF_INET, SOCK_STREAM, 0);
+    socket_fd = serv_sock;
+    if(serv_sock == -1){
+        printf("Unable to create socket\n");
+        exit(0);
+    }
+    printf("Socket created Successfully\n");
+    signal(SIGINT, terminate);
+
+
+    struct sockaddr_in server_conn;
+    memset(&server, 0, sizeof(server));
+
+    server_conn.sin_addr.s_addr = inet_addr(ip); //Local Host
+    server_conn.sin_family = AF_INET;
+    server_conn.sin_port = htons(portno);
+    conn_desc = connect(serv_sock,(struct sockaddr *)&server_conn,sizeof(struct sockaddr_in));
+
+
+    //Connecting to server
+    if (conn_desc < 0)
     {
-        perror("connect failed.\n");
-        return 1;
+        printf("Connection failed. Exiting....\n");
+        exit(0);
     }
     printf("Sucessfully conected with server\n");
-    printf("Enter the Message: ");
-    gets(SendToServer);
-    //Send data to the server
-    SocketSend(hSocket, SendToServer, strlen(SendToServer));
-    //Received the data from the server
-    read_size = SocketReceive(hSocket, server_reply, 200);
-    printf("Server Response : %s\n\n",server_reply);
-    close(hSocket);
-    shutdown(hSocket,0);
-    shutdown(hSocket,1);
-    shutdown(hSocket,2);
+
+
+    //chat with the server
+    chat(serv_sock);
+
+    close(serv_sock);
     return 0;
 }
+
