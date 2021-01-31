@@ -20,7 +20,9 @@ void sendMsg(int serv_sock)
     int stat;
     memset(sendBuffer, 0, sizeof(sendBuffer));
     printf("Your Message : ");
-    gets(sendBuffer);
+    // gets(sendBuffer);
+    fgets(sendBuffer, MAXLENGTH , stdin);
+    sendBuffer[strlen(sendBuffer) - 1] = '\0';
     stat = send(serv_sock, sendBuffer, strlen(sendBuffer), 0);
 }
 
@@ -99,7 +101,7 @@ int main(int argc, char *argv[])
         printf("Connection failed. Exiting....\n");
         exit(0);
     }
-    printf("Sucessfully conected with server\n");
+    printf("Sucessfully conected with server\n\n");
 
 
     //chat with the server
