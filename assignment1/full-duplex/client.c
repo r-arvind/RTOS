@@ -23,7 +23,7 @@ void sendMsg(int serv_sock)
     // gets(sendBuffer);
     fgets(sendBuffer, MAXLENGTH , stdin);
     sendBuffer[strlen(sendBuffer) - 1] = '\0';
-    stat = send(serv_sock, sendBuffer, strlen(sendBuffer), 0);
+    stat = send(socket_fd, sendBuffer, strlen(sendBuffer), 0);
 }
 
 
@@ -33,7 +33,7 @@ void recvMsg(int serv_sock)
     // char reply[MAXLENGTH] = {0};
     int msg;
     memset(recvBuffer, 0, sizeof(recvBuffer));
-    msg = recv(serv_sock, recvBuffer, MAXLENGTH, 0);
+    msg = recv(socket_fd, recvBuffer, MAXLENGTH, 0);
     printf("Response from server : %s\n" ,recvBuffer);
 }
 
@@ -76,9 +76,9 @@ int main(int argc, char *argv[])
     
     //Create socket
     printf("Create the socket\n");
-    serv_sock = socket(AF_INET, SOCK_STREAM, 0);
-    socket_fd = serv_sock;
-    if(serv_sock == -1){
+    socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+    // socket_fd = serv_sock;
+    if(socket_fd == -1){
         printf("Unable to create socket\n");
         exit(0);
     }
@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
     server_conn.sin_addr.s_addr = inet_addr(ip); //Local Host
     server_conn.sin_family = AF_INET;
     server_conn.sin_port = htons(portno);
-    conn_desc = connect(serv_sock,(struct sockaddr *)&server_conn,sizeof(struct sockaddr_in));
+    conn_desc = connect(socket_fd,(struct sockaddr *)&server_conn,sizeof(struct sockaddr_in));
 
 
     //Connecting to server

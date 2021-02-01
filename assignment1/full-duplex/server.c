@@ -15,7 +15,7 @@
 
 char sendBuffer[MAXLENGTH] = {0};
 char recvBuffer[MAXLENGTH] = {0};
-int socket_fd;
+int socket_fd, connection_fd;
 
 // Send the data to the server and set the timeout of 20 seconds
 void sendMsg(int serv_sock)
@@ -25,7 +25,7 @@ void sendMsg(int serv_sock)
     printf("Enter Message : ");
     fgets(sendBuffer, MAXLENGTH , stdin);
     sendBuffer[strlen(sendBuffer) - 1] = '\0';
-    stat = send(serv_sock, sendBuffer, strlen(sendBuffer), 0);
+    stat = send(connection_fd, sendBuffer, strlen(sendBuffer), 0);
 }
 
 
@@ -34,7 +34,7 @@ void recvMsg(int serv_sock){
     // char reply[MAXLENGTH] = {0};
     int msg;
     memset(recvBuffer, 0, sizeof(recvBuffer));
-    msg = recv(serv_sock, recvBuffer, MAXLENGTH, 0);
+    msg = recv(connection_fd, recvBuffer, MAXLENGTH, 0);
     printf("Response from client: %s\n",recvBuffer);
 }
 
@@ -66,10 +66,10 @@ int main(int argc, char **argv){
     struct sockaddr_in servaddr, cli; 
   
     // socket create and verification 
-    sock_desc = socket(AF_INET, SOCK_STREAM, 0); 
-    socket_fd = sock_desc;
+    socket_fd = socket(AF_INET, SOCK_STREAM, 0); 
+    // socket_fd = sock_desc;
 
-    if (sock_desc == -1) { 
+    if (socket_fd == -1) { 
         printf("Unable to create socket !!\nExitting....\n"); 
         exit(0); 
     } 
@@ -84,14 +84,14 @@ int main(int argc, char **argv){
     servaddr.sin_port = htons(atoi(portno)); 
   
     // Binding newly created socket to given IP and verification 
-    if ((bind(sock_desc, (struct sockaddr*)&servaddr, sizeof(servaddr))) != 0) { 
+    if ((bind(socket_fd, (struct sockaddr*)&servaddr, sizeof(servaddr))) != 0) { 
         printf("Socket binding Failed\n"); 
         exit(0); 
     }    
     printf("Socket bound Succesfuly\n"); 
   
     // Now server is ready to listen and verification 
-    if ((listen(sock_desc, 5)) != 0) { 
+    if ((listen(socket_fd, 5)) != 0) { 
         printf("Listen failed\n Exiting.....\n"); 
         exit(0); 
     }
@@ -100,8 +100,8 @@ int main(int argc, char **argv){
 
     len = sizeof(cli); 
     // Accept the data packet from client and verification 
-    conn_desc = accept(sock_desc, (struct sockaddr*)&cli, &len); 
-    if (conn_desc < 0) { 
+    connection_fd = accept(socket_fd, (struct sockaddr*)&cli, &len); 
+    if (connection_fd < 0) { 
         printf("Client connection failed\n"); 
         exit(0); 
     }

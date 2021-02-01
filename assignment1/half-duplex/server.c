@@ -15,7 +15,7 @@
 
 char sendBuffer[MAXLENGTH] = {0};
 char recvBuffer[MAXLENGTH] = {0};
-int socket_fd;
+int socket_fd = 0;
 
 // Send the data to the server and set the timeout of 20 seconds
 void sendMsg(int serv_sock)
