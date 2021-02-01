@@ -8,7 +8,7 @@
 #include <sys/socket.h> 
 #include <sys/types.h> 
 #include <unistd.h>  
-
+#include <pthread.h>
 
 #define MAXLENGTH 100 
   
@@ -18,35 +18,37 @@ char recvBuffer[MAXLENGTH] = {0};
 int socket_fd, connection_fd;
 
 // Send the data to the server and set the timeout of 20 seconds
-void sendMsg(int serv_sock)
+void *sendMsg()
 {
+    for(;;) {
     int stat;
     memset(sendBuffer, 0, sizeof(sendBuffer));
-    printf("Enter Message : ");
+    // printf("Enter Message : ");
     fgets(sendBuffer, MAXLENGTH , stdin);
-    sendBuffer[strlen(sendBuffer) - 1] = '\0';
     stat = send(connection_fd, sendBuffer, strlen(sendBuffer), 0);
+    }
 }
 
 
 //receive the data from the server
-void recvMsg(int serv_sock){
-    // char reply[MAXLENGTH] = {0};
+void *recvMsg(){
+    for(;;) {
     int msg;
     memset(recvBuffer, 0, sizeof(recvBuffer));
     msg = recv(connection_fd, recvBuffer, MAXLENGTH, 0);
-    printf("Response from client: %s\n",recvBuffer);
+    printf("%s",recvBuffer);
+    }
 }
 
 // Function designed for chat between client and server. 
-void chat(int sock_desc){ 
-    int n; 
-    // infinite loop for chat 
-    for (;;) { 
-        recvMsg(sock_desc);
-        sendMsg(sock_desc);
-    } 
-} 
+// void chat(){ 
+//     int n; 
+//     // infinite loop for chat 
+//     for (;;) { 
+//         recvMsg();
+//         sendMsg();
+//     } 
+// } 
 
 void terminate(int num){
     close(socket_fd);
@@ -64,10 +66,10 @@ int main(int argc, char **argv){
     char *portno = argv[1];
     int sock_desc, conn_desc, len; 
     struct sockaddr_in servaddr, cli; 
+    pthread_t read_thread, write_thread;
   
     // socket create and verification 
     socket_fd = socket(AF_INET, SOCK_STREAM, 0); 
-    // socket_fd = sock_desc;
 
     if (socket_fd == -1) { 
         printf("Unable to create socket !!\nExitting....\n"); 
@@ -106,10 +108,18 @@ int main(int argc, char **argv){
         exit(0); 
     }
     printf("Client Successfully Connected\n\n");
+
+
+    pthread_create(&read_thread, NULL, recvMsg, NULL);
+    pthread_create(&write_thread, NULL, sendMsg, NULL);
+    
+    pthread_join(read_thread, NULL);
+    pthread_join(write_thread, NULL);
+
     // Function for chatting between client and server 
-    chat(conn_desc); 
+    // chat(conn_desc); 
   
     // After chatting close the socket 
-    close(sock_desc); 
+    // close(sock_desc); 
 } 
 

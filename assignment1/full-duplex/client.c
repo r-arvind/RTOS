@@ -5,7 +5,7 @@
 #include<arpa/inet.h>
 #include<unistd.h>
 #include <signal.h>
-
+#include <pthread.h>
 
 #define MAXLENGTH 100
 
@@ -15,39 +15,41 @@ int socket_fd;
 
 
 // Send the data to the server and set the timeout of 20 seconds
-void sendMsg(int serv_sock)
+void *sendMsg()
 {
-    int stat;
-    memset(sendBuffer, 0, sizeof(sendBuffer));
-    printf("Your Message : ");
-    // gets(sendBuffer);
-    fgets(sendBuffer, MAXLENGTH , stdin);
-    sendBuffer[strlen(sendBuffer) - 1] = '\0';
-    stat = send(socket_fd, sendBuffer, strlen(sendBuffer), 0);
+    for(;;){
+        int stat;
+        memset(sendBuffer, 0, sizeof(sendBuffer));
+        // printf("Your Message : ");
+        fgets(sendBuffer, MAXLENGTH , stdin);
+        stat = send(socket_fd, sendBuffer, strlen(sendBuffer), 0);
+    }
 }
 
 
 //receive the data from the server
-void recvMsg(int serv_sock)
+void *recvMsg()
 {
-    // char reply[MAXLENGTH] = {0};
-    int msg;
-    memset(recvBuffer, 0, sizeof(recvBuffer));
-    msg = recv(socket_fd, recvBuffer, MAXLENGTH, 0);
-    printf("Response from server : %s\n" ,recvBuffer);
+    for (;;){
+        int msg;
+        memset(recvBuffer, 0, sizeof(recvBuffer));
+        msg = recv(socket_fd, recvBuffer, MAXLENGTH, 0);
+        printf("%s" ,recvBuffer);
+        // printf("Your Message : ");
+    }
 }
 
 
 // Function designed for chat between client and server. 
-void chat(int sock_desc) 
-{ 
-    int n; 
-    // infinite loop for chat 
-    for (;;) { 
-        sendMsg(sock_desc);
-        recvMsg(sock_desc);
-    } 
-} 
+// void chat() 
+// { 
+//     int n; 
+//     // infinite loop for chat 
+//     for (;;) { 
+//         sendMsg();
+//         recvMsg();
+//     } 
+// } 
 
 void terminate(int num){
     close(socket_fd);
@@ -73,7 +75,8 @@ int main(int argc, char *argv[])
 
     int serv_sock, read_size, conn_desc;
     struct sockaddr_in server;
-    
+    pthread_t read_thread, write_thread;
+
     //Create socket
     printf("Create the socket\n");
     socket_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -104,10 +107,14 @@ int main(int argc, char *argv[])
     printf("Sucessfully conected with server\n\n");
 
 
-    //chat with the server
-    chat(serv_sock);
+    pthread_create(&read_thread, NULL, recvMsg, NULL);
+    pthread_create(&write_thread, NULL, sendMsg, NULL);
+    
+    pthread_join(read_thread, NULL);
+    pthread_join(write_thread, NULL);
 
-    close(serv_sock);
-    return 0;
+    //chat with the server
+    // chat();
+    // close(serv_sock);
 }
 
