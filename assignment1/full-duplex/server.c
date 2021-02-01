@@ -40,16 +40,6 @@ void *recvMsg(){
     }
 }
 
-// Function designed for chat between client and server. 
-// void chat(){ 
-//     int n; 
-//     // infinite loop for chat 
-//     for (;;) { 
-//         recvMsg();
-//         sendMsg();
-//     } 
-// } 
-
 void terminate(int num){
     close(socket_fd);
     printf("\nClosing Socket. Exiting Application\n");
@@ -116,10 +106,5 @@ int main(int argc, char **argv){
     pthread_join(read_thread, NULL);
     pthread_join(write_thread, NULL);
 
-    // Function for chatting between client and server 
-    // chat(conn_desc); 
-  
-    // After chatting close the socket 
-    // close(sock_desc); 
 } 
 
