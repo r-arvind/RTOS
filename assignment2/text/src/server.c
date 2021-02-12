@@ -11,6 +11,7 @@
 #include <pthread.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include "message.h"
 
 #define MAX_MEMBERS 10        //total clients that can be handled
 // #define MAX_GROUPS_NUM 10           //max number of groups that can be created in the server
@@ -26,6 +27,12 @@ int members[MAX_MEMBERS] = {0};
 // int connectionCount[MAX_GROUPS_NUM];
 int memberCount = 0;
 int socket_fd = 0;  
+int connection_fd = 0;
+
+message recvMessage;
+
+void terminate(int num);
+
 
 // Driver function 
 int main(int argc, char **argv){ 
@@ -78,39 +85,50 @@ int main(int argc, char **argv){
         printf("Client connection failed\n"); 
         exit(0); 
     }
-    printf("Client Successfully Connected\n\n");
+    printf("Client Successfully Connected lol\n\n");
+    printf("lol");
 
 
-    pthread_create(&read_thread, NULL, recvMsg, NULL);
-    pthread_create(&write_thread, NULL, sendMsg, NULL);
+    struct Register reg; 
+    int regstatus = 0;
     
-    pthread_join(read_thread, NULL);
-    pthread_join(write_thread, NULL);
+    regstatus = recv(connection_fd, &reg,sizeof(reg),0);
+    printf("lol");
+    printf("%s Connected",reg.name);
+    // pthread_create(&read_thread, NULL, recvMsg, NULL);
+
+    for(;;) {
+    recv(connection_fd, &reg,sizeof(reg),0);
+    // recv(connection_fd, recvBuffer, MAXLENGTH, 0);
+    printf("Message from %s : %s",recvMessage.sender, recvMessage.message);
+    }
+
+    // pthread_create(&write_thread, NULL, sendMsg, NULL);    
 
 } 
 
 // Send the data to the server and set the timeout of 20 seconds
-void *sendMsg()
-{
-    for(;;) {
-    int stat;
-    memset(sendBuffer, 0, sizeof(sendBuffer));
-    // printf("Enter Message : ");
-    fgets(sendBuffer, MAXLENGTH , stdin);
-    stat = send(connection_fd, sendBuffer, strlen(sendBuffer), 0);
-    }
-}
+// void *postman()
+// {
+//     for(;;) {
+//     int stat;
+//     memset(sendBuffer, 0, sizeof(sendBuffer));
+//     // printf("Enter Message : ");
+//     fgets(sendBuffer, MAXLENGTH , stdin);
+//     stat = send(connection_fd, sendBuffer, strlen(sendBuffer), 0);
+//     }
+// }
 
 
 //receive the data from the server
-void *recvMsg(){
-    for(;;) {
-    int msg;
-    memset(recvBuffer, 0, sizeof(recvBuffer));
-    msg = recv(connection_fd, recvBuffer, MAXLENGTH, 0);
-    printf("%s",recvBuffer);
-    }
-}
+// void *recvMsg(){
+//     for(;;) {
+//     int msg;
+//     memset(recvBuffer, 0, sizeof(recvBuffer));
+//     msg = recv(connection_fd, recvBuffer, MAXLENGTH, 0);
+//     printf("%s",recvBuffer);
+//     }
+// }
 
 void terminate(int num){
     close(socket_fd);

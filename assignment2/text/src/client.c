@@ -8,24 +8,9 @@
 #include <pthread.h>
 #include "message.h"
 
-#define MAXLENGTH 100
-
-char sendBuffer[MAXLENGTH] = {0};
-char recvBuffer[MAXLENGTH] = {0};
 int socket_fd;
-
-// Send the data to the server and set the timeout of 20 seconds
-void *sendMsg()
-{
-    for (;;)
-    {
-        int stat;
-        memset(sendBuffer, 0, sizeof(sendBuffer));
-        // printf("Your Message : ");
-        fgets(sendBuffer, MAXLENGTH, stdin);
-        stat = send(socket_fd, sendBuffer, strlen(sendBuffer), 0);
-    }
-}
+pthread_t read_thread;
+message myMessage;
 
 //receive the data from the server
 void *recvMsg()
@@ -33,38 +18,34 @@ void *recvMsg()
     for (;;)
     {
         int msg;
-        memset(recvBuffer, 0, sizeof(recvBuffer));
-        msg = recv(socket_fd, recvBuffer, MAXLENGTH, 0);
-        printf("%s", recvBuffer);
-        // printf("Your Message : ");
+        message m;
+        // memset(recvBuffer, 0, sizeof(recvBuffer));
+        msg = recv(socket_fd, &m, sizeof(m), 0);
+        printf("\r%s : %sYour Message: ", m.sender ,m.message);
     }
 }
 
-void terminate(int num)
-{
-    close(socket_fd);
-    printf("\nClosing Socket. Exiting Application\n");
-    exit(0);
-}
+void terminate(int num);
+
 
 //main driver program
 int main(int argc, char *argv[])
 {
 
-    if (argc != 3)
+    if (argc != 4)
     {
-        printf("Incorrect Paramters. Please provide IP and Port. Exiting....");
+        printf("Incorrect Paramters. Please provide IP and Port and your name. Exiting....");
         exit(0);
     }
 
     int portno = atoi(argv[2]);
     char *ip = argv[1];
+    char *myname = argv[3];
 
     printf("IP is %s and Port Number is %i", ip, portno);
 
     int serv_sock, read_size, conn_desc;
     struct sockaddr_in server;
-    pthread_t read_thread, write_thread;
 
     //Create socket
     printf("Create the socket\n");
@@ -89,15 +70,34 @@ int main(int argc, char *argv[])
     //Connecting to server
     if (conn_desc < 0)
     {
-        printf("Connection failed. Exiting....\n");
+        printf("Failed to connect to server. Exiting....\n");
         exit(0);
     }
     printf("Sucessfully conected with server\n\n");
 
-    pthread_create(&read_thread, NULL, recvMsg, NULL);
-    pthread_create(&write_thread, NULL, sendMsg, NULL);
+    struct Register reg;
+    int regstatus = 0;
+    strcpy(reg.name, myname);
+    regstatus = send(socket_fd, &reg, sizeof(reg),0);
+    printf("Registered at server : %i", regstatus);
+    // pthread_create(&read_thread, NULL, recvMsg, NULL);
+    for (;;)
+    {
+        message m;
+        // memset(sendBuffer, 0, sizeof(sendBuffer));
+        printf("Your Message : ");
+        fgets(myMessage.message, sizeof(myMessage.message), stdin);
+        send(socket_fd, &myMessage, sizeof(myMessage), 0);
+    }
 
-    pthread_join(read_thread, NULL);
-    pthread_join(write_thread, NULL);
+    // pthread_kill(read_thread, NULL);
 
+}
+
+
+void terminate(int num) {
+    // pthread_kill(read_thread, NULL);
+    close(socket_fd);
+    printf("\nClosing Socket. Exiting Application\n");
+    exit(0);
 }

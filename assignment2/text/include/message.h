@@ -1,12 +1,12 @@
 #ifndef MESSAGE_H
 #define MESSAGE_H
 
-struct Message {
+typedef struct Message {
     int message_type ; //GROUPMESSAGE, GROUPQUERY
     char sender[20];
     char receiver[20];
     char message[100];
-};
+} message;
 
 struct Register {
     char name[20];
