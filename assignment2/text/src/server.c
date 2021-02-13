@@ -36,12 +36,10 @@ pthread_t clientHandlerThreads[MAX_MEMBERS];
 
 
 void terminate(int num);
-
 void *clientHandler(void *sock_fd);
+void printMembers(void);
 
 
-
-// Driver function 
 int main(int argc, char **argv){ 
 
     if(argc == 1){
@@ -91,13 +89,14 @@ int main(int argc, char **argv){
     while(1){
         int *connection_fd = malloc(sizeof(int));
         *connection_fd = accept(socket_fd, (struct sockaddr*)&cli, &len); 
-        printf("Member Count : %i\n",memberCount);
+        printf("Member Count : %i\n",memberCount+1);
         if (*connection_fd < 0) { 
             printf("Client connection failed\n"); 
             exit(0); 
         }
         // printf("Client Successfully Connected\n");
         pthread_create(&clientHandlerThreads[memberCount], NULL, clientHandler ,(void *)connection_fd);
+        printMembers();
     }
     // pthread_create(&write_thread, NULL, sendMsg, NULL);    
 
@@ -118,17 +117,31 @@ void *clientHandler(void *socket_fd){
         members_socks[memberCount++] = client_fd;
         pthread_mutex_unlock(&memberRegistrationMutex);
 
-        for(;;) {
         message recvMessage;
-        recv(client_fd, &recvMessage,sizeof(recvMessage),0);
+        while(recv(client_fd, &recvMessage,sizeof(recvMessage),0)) {
         // recv(connection_fd, recvBuffer, MAXLENGTH, 0);
-        for(int j=0;j<memberCount;j++){
-            if(strcmp(members[j], recvMessage.sender) != 0){
-                send(members_socks[j], &recvMessage, sizeof(recvMessage),0); 
+            for(int j=0;j<memberCount;j++){
+                if(strcmp(members[j], recvMessage.sender) != 0){
+                    send(members_socks[j], &recvMessage, sizeof(recvMessage),0); 
+                }
             }
         }
-        // printf("%s: %s",recvMessage.sender, recvMessage.message);
+        
+        printf("%s left the group\n",reg.name);
+        pthread_mutex_lock(&memberRegistrationMutex);
+        int exitedMember;
+        for(int k=0;k<MAX_MEMBERS;k++){
+            if(strcmp(reg.name, members[k]) == 0){
+                exitedMember = k;
+                break;
+            }
         }
+        for(exitedMember;exitedMember<memberCount;exitedMember++){
+            members_socks[exitedMember] = members_socks[exitedMember + 1];
+            strcpy(members[exitedMember],members[exitedMember + 1]);
+        }
+        memberCount--;
+        pthread_mutex_unlock(&memberRegistrationMutex);
 }
 
 void terminate(int num){
@@ -144,3 +157,13 @@ void terminate(int num){
 }
   
 
+void printMembers(void){
+    pthread_mutex_lock(&memberRegistrationMutex);
+    printf("Members : ");
+    for(int k=0;k<memberCount+1;k++){
+        printf("%s ",members[k]);
+        fflush(stdout);
+    }
+    printf("\n");
+    pthread_mutex_unlock(&memberRegistrationMutex);
+}
