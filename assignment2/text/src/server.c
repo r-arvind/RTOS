@@ -20,18 +20,25 @@
 #define POSTMAN_COUNT 3                 //Postman reads messages from the message queue and delivers it to it's respective user
 
 // resource handlers
-// int connections[MAX_GROUPS_NUM][MAX_GROUP_SIZE];
-int group[MAX_MEMBERS] = {0};
-int members[MAX_MEMBERS] = {0};
+int members_socks[MAX_MEMBERS] = {0};
+char members[MAX_MEMBERS][20] = {0};
 // char groupNames[MAX_GROUPS_NUM][20];
 // int connectionCount[MAX_GROUPS_NUM];
 int memberCount = 0;
 int socket_fd = 0;  
-int connection_fd = 0;
+// int connection_fd = 0;
 
-message recvMessage;
+
+pthread_mutex_t memberRegistrationMutex;
+pthread_t clientHandlerThreads[MAX_MEMBERS];
+
+// message recvMessage;
+
 
 void terminate(int num);
+
+void *clientHandler(void *sock_fd);
+
 
 
 // Driver function 
@@ -75,60 +82,52 @@ int main(int argc, char **argv){
         printf("Listen failed\n Exiting.....\n"); 
         exit(0); 
     }
-    printf("Server listening on Port %i\n",atoi(portno)); 
+    printf("Server listening on Port %i\n\n",atoi(portno)); 
 
 
     len = sizeof(cli); 
     // Accept the data packet from client and verification 
-    connection_fd = accept(socket_fd, (struct sockaddr*)&cli, &len); 
-    if (connection_fd < 0) { 
-        printf("Client connection failed\n"); 
-        exit(0); 
+
+    while(memberCount < MAX_MEMBERS){
+        int *connection_fd = malloc(sizeof(int));
+        *connection_fd = accept(socket_fd, (struct sockaddr*)&cli, &len); 
+        if (*connection_fd < 0) { 
+            printf("Client connection failed\n"); 
+            exit(0); 
+        }
+        // printf("Client Successfully Connected\n");
+        pthread_create(&clientHandlerThreads[memberCount], NULL, clientHandler ,(void *)connection_fd);
+
     }
-    printf("Client Successfully Connected");
-
-
-    struct Register reg; 
-    int regstatus = 0;
-    
-    regstatus = recv(connection_fd, &reg,sizeof(reg),0);
-    printf("%s Connected\n",reg.name);
-    // pthread_create(&read_thread, NULL, recvMsg, NULL);
-
-    for(;;) {
-    recv(connection_fd, &recvMessage,sizeof(recvMessage),0);
-    // recv(connection_fd, recvBuffer, MAXLENGTH, 0);
-    printf("Message from %s : %s",recvMessage.sender, recvMessage.message);
-    }
-
     // pthread_create(&write_thread, NULL, sendMsg, NULL);    
 
 } 
 
-// Send the data to the server and set the timeout of 20 seconds
-// void *postman()
-// {
-//     for(;;) {
-//     int stat;
-//     memset(sendBuffer, 0, sizeof(sendBuffer));
-//     // printf("Enter Message : ");
-//     fgets(sendBuffer, MAXLENGTH , stdin);
-//     stat = send(connection_fd, sendBuffer, strlen(sendBuffer), 0);
-//     }
-// }
+void *clientHandler(void *socket_fd){
+        int client_fd = *(int *)socket_fd;
+        struct Register reg; 
+        recv(client_fd, &reg,sizeof(reg),0);
+        pthread_mutex_lock(&memberRegistrationMutex);
+        printf("%s Joined the Group!\n",reg.name);
+        strcpy(members[memberCount], reg.name);
+        members_socks[memberCount] = client_fd;
+        pthread_mutex_unlock(&memberRegistrationMutex);
 
-
-//receive the data from the server
-// void *recvMsg(){
-//     for(;;) {
-//     int msg;
-//     memset(recvBuffer, 0, sizeof(recvBuffer));
-//     msg = recv(connection_fd, recvBuffer, MAXLENGTH, 0);
-//     printf("%s",recvBuffer);
-//     }
-// }
+        for(;;) {
+        message recvMessage;
+        recv(client_fd, &recvMessage,sizeof(recvMessage),0);
+        // recv(connection_fd, recvBuffer, MAXLENGTH, 0);
+        printf("%s: %s",recvMessage.sender, recvMessage.message);
+        }
+}
 
 void terminate(int num){
+    for(int i=0;i<MAX_MEMBERS;i++){
+        pthread_kill(clientHandlerThreads[i],SIGKILL);
+    }
+    for(int i=0;i<MAX_MEMBERS;i++){
+        close(members_socks[i]);
+    }
     close(socket_fd);
     printf("\nClosing Socket. Exiting Application\n");
     exit(0);

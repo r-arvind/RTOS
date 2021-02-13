@@ -77,16 +77,15 @@ int main(int argc, char *argv[])
     printf("Sucessfully conected with server\n\n");
 
     struct Register reg;
-    int regstatus = 0;
     strcpy(reg.name, myname);
-    regstatus = send(socket_fd, &reg, sizeof(reg),0);
-    printf("Registered at server : %i", regstatus);
+    send(socket_fd, &reg, sizeof(reg),0);
+    printf("Successfully joined the group\n");
     // pthread_create(&read_thread, NULL, recvMsg, NULL);
     for (;;)
     {
         message m;
         // memset(sendBuffer, 0, sizeof(sendBuffer));
-        printf("Your Message : ");
+        printf("Your Message: ");
         fgets(myMessage.message, sizeof(myMessage.message), stdin);
         send(socket_fd, &myMessage, sizeof(myMessage), 0);
     }
