@@ -2,7 +2,7 @@
 #define MESSAGE_H
 
 typedef struct Message {
-    int message_type ; //GROUPMESSAGE, GROUPQUERY
+    int message_type ; //GROUPMESSAGE, USERMESSAGE
     char sender[20];
     char receiver[20];
     char message[100];

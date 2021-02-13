@@ -21,7 +21,9 @@ void *recvMsg()
         message m;
         // memset(recvBuffer, 0, sizeof(recvBuffer));
         msg = recv(socket_fd, &m, sizeof(m), 0);
-        printf("\r%s : %sYour Message: ", m.sender ,m.message);
+        // printf("\33[2K\r%s : %sYour Message:\n", m.sender ,m.message);
+        fprintf(stdout,"\33[2K\r%s : %sYour Message: ", m.sender ,m.message);
+        fflush(stdout);
     }
 }
 
@@ -80,11 +82,9 @@ int main(int argc, char *argv[])
     strcpy(reg.name, myname);
     send(socket_fd, &reg, sizeof(reg),0);
     printf("Successfully joined the group\n");
-    // pthread_create(&read_thread, NULL, recvMsg, NULL);
+    pthread_create(&read_thread, NULL, recvMsg, NULL);
     for (;;)
     {
-        message m;
-        // memset(sendBuffer, 0, sizeof(sendBuffer));
         printf("Your Message: ");
         fgets(myMessage.message, sizeof(myMessage.message), stdin);
         send(socket_fd, &myMessage, sizeof(myMessage), 0);

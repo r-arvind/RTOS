@@ -13,7 +13,7 @@
 #include <fcntl.h>
 #include "message.h"
 
-#define MAX_MEMBERS 10        //total clients that can be handled
+#define MAX_MEMBERS 3        //total clients that can be handled
 // #define MAX_GROUPS_NUM 10           //max number of groups that can be created in the server
 // #define MAX_GROUP_SIZE 100          //number of members in a group
 #define MAILBOX_SIZE 1000               //size of message queue
@@ -88,16 +88,16 @@ int main(int argc, char **argv){
     len = sizeof(cli); 
     // Accept the data packet from client and verification 
 
-    while(memberCount < MAX_MEMBERS){
+    while(1){
         int *connection_fd = malloc(sizeof(int));
         *connection_fd = accept(socket_fd, (struct sockaddr*)&cli, &len); 
+        printf("Member Count : %i\n",memberCount);
         if (*connection_fd < 0) { 
             printf("Client connection failed\n"); 
             exit(0); 
         }
         // printf("Client Successfully Connected\n");
         pthread_create(&clientHandlerThreads[memberCount], NULL, clientHandler ,(void *)connection_fd);
-
     }
     // pthread_create(&write_thread, NULL, sendMsg, NULL);    
 
@@ -108,16 +108,26 @@ void *clientHandler(void *socket_fd){
         struct Register reg; 
         recv(client_fd, &reg,sizeof(reg),0);
         pthread_mutex_lock(&memberRegistrationMutex);
+        if(memberCount >= MAX_MEMBERS){
+            printf("Rejected Client %s. Maximum Capacity Reached.\n", reg.name);
+            close(client_fd);
+            pthread_cancel(clientHandlerThreads[memberCount]);
+        }
         printf("%s Joined the Group!\n",reg.name);
         strcpy(members[memberCount], reg.name);
-        members_socks[memberCount] = client_fd;
+        members_socks[memberCount++] = client_fd;
         pthread_mutex_unlock(&memberRegistrationMutex);
 
         for(;;) {
         message recvMessage;
         recv(client_fd, &recvMessage,sizeof(recvMessage),0);
         // recv(connection_fd, recvBuffer, MAXLENGTH, 0);
-        printf("%s: %s",recvMessage.sender, recvMessage.message);
+        for(int j=0;j<memberCount;j++){
+            if(strcmp(members[j], recvMessage.sender) != 0){
+                send(members_socks[j], &recvMessage, sizeof(recvMessage),0); 
+            }
+        }
+        // printf("%s: %s",recvMessage.sender, recvMessage.message);
         }
 }
 
