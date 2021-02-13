@@ -85,20 +85,18 @@ int main(int argc, char **argv){
         printf("Client connection failed\n"); 
         exit(0); 
     }
-    printf("Client Successfully Connected lol\n\n");
-    printf("lol");
+    printf("Client Successfully Connected");
 
 
     struct Register reg; 
     int regstatus = 0;
     
     regstatus = recv(connection_fd, &reg,sizeof(reg),0);
-    printf("lol");
-    printf("%s Connected",reg.name);
+    printf("%s Connected\n",reg.name);
     // pthread_create(&read_thread, NULL, recvMsg, NULL);
 
     for(;;) {
-    recv(connection_fd, &reg,sizeof(reg),0);
+    recv(connection_fd, &recvMessage,sizeof(recvMessage),0);
     // recv(connection_fd, recvBuffer, MAXLENGTH, 0);
     printf("Message from %s : %s",recvMessage.sender, recvMessage.message);
     }

@@ -41,6 +41,7 @@ int main(int argc, char *argv[])
     int portno = atoi(argv[2]);
     char *ip = argv[1];
     char *myname = argv[3];
+    strcpy(myMessage.sender,myname);
 
     printf("IP is %s and Port Number is %i", ip, portno);
 
