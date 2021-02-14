@@ -96,7 +96,7 @@ int main(int argc, char **argv){
         }
         // printf("Client Successfully Connected\n");
         pthread_create(&clientHandlerThreads[memberCount], NULL, clientHandler ,(void *)connection_fd);
-        printMembers();
+        // printMembers();
     }
     // pthread_create(&write_thread, NULL, sendMsg, NULL);    
 
@@ -119,12 +119,23 @@ void *clientHandler(void *socket_fd){
 
         message recvMessage;
         while(recv(client_fd, &recvMessage,sizeof(recvMessage),0)) {
-        // recv(connection_fd, recvBuffer, MAXLENGTH, 0);
-            for(int j=0;j<memberCount;j++){
-                if(strcmp(members[j], recvMessage.sender) != 0){
-                    send(members_socks[j], &recvMessage, sizeof(recvMessage),0); 
+            if(recvMessage.message_type == 0){
+                printf("Group Message from %s: %s\n",recvMessage.sender,recvMessage.message);
+                for(int j=0;j<memberCount;j++){
+                    if(strcmp(members[j], recvMessage.sender) != 0){
+                        send(members_socks[j], &recvMessage, sizeof(recvMessage),0); 
+                    }
+                }
+            } else {
+                printf("Direct Message from %s to %s: %s\n",recvMessage.sender,recvMessage.receiver,recvMessage.message);
+                for(int j=0;j<memberCount;j++){
+                    if(strcmp(members[j], recvMessage.receiver) == 0){
+                        send(members_socks[j], &recvMessage, sizeof(recvMessage),0); 
+                    }
                 }
             }
+        // recv(connection_fd, recvBuffer, MAXLENGTH, 0);
+
         }
         
         printf("%s left the group\n",reg.name);
