@@ -92,9 +92,7 @@ int main(int argc, char *argv[])
     {
         // pthread_mutex_lock(&stdinMutex);
         printf("Your Message: ");
-        if(fgets(myMessage.message, sizeof(myMessage.message), stdin) == NULL){
-            continue;
-        }
+        fgets(myMessage.message, sizeof(myMessage.message), stdin);
         // pthread_mutex_unlock(&stdinMutex);
         printf("Message Type (0 for GROUP or 1 for USER): ");
 		scanf("%d%*c",&type);
@@ -104,9 +102,6 @@ int main(int argc, char *argv[])
 			scanf("%[^\n]%*c", receiver);
             strcpy(myMessage.receiver,receiver);
 		}
-        if(strcmp(myMessage.message,"\n") == 0){
-            continue;
-        }
         send(socket_fd, &myMessage, sizeof(myMessage), 0);
     }
 
