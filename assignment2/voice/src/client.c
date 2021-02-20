@@ -7,6 +7,7 @@
 #include <signal.h>
 #include <pthread.h>
 #include "message.h"
+#include "audio.h"
 
 int socket_fd;
 pthread_t read_thread;
@@ -21,7 +22,7 @@ void *recvMsg()
         int msg;
         message m;
         msg = recv(socket_fd, &m, sizeof(m), 0);
-        fprintf(stdout,"\33[2K\r%s : %sYour Message: ", m.sender ,m.message);
+        fprintf(stdout,"\33[2K\r%s : %sYour Message: ", m.name ,m.msg);
         fflush(stdout);
     }
 }
@@ -46,7 +47,7 @@ int main(int argc, char *argv[])
     char *ip = argv[1];
     char *myname = argv[3];
 
-    strcpy(myMessage.sender,myname);
+    strcpy(myMessage.name,myname);
 
     printf("IP is %s and Port Number is %i", ip, portno);
 
@@ -81,8 +82,8 @@ int main(int argc, char *argv[])
     }
     printf("Sucessfully conected with server\n\n");
 
-    struct Register reg;
-    strcpy(reg.name, myname);
+    struct Init reg;
+    strcpy(reg.user_id, myname);
     send(socket_fd, &reg, sizeof(reg),0);
     printf("Successfully joined the group\n");
     pthread_create(&read_thread, NULL, recvMsg, NULL);
@@ -92,15 +93,15 @@ int main(int argc, char *argv[])
     {
         // pthread_mutex_lock(&stdinMutex);
         printf("Your Message: ");
-        fgets(myMessage.message, sizeof(myMessage.message), stdin);
+        fgets(myMessage.msg, sizeof(myMessage.msg), stdin);
         // pthread_mutex_unlock(&stdinMutex);
         printf("Message Type (0 for GROUP or 1 for USER): ");
 		scanf("%d%*c",&type);
-        myMessage.message_type = type;
+        myMessage.msgtype = type;
 		if(type == 1){
 			printf("Enter reciever number: ");
 			scanf("%[^\n]%*c", receiver);
-            strcpy(myMessage.receiver,receiver);
+            strcpy(myMessage.recipient_id,receiver);
 		}
         send(socket_fd, &myMessage, sizeof(myMessage), 0);
     }

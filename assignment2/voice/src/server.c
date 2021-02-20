@@ -12,6 +12,8 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include "message.h"
+#include "audio.h"
+
 
 #define MAX_MEMBERS 3        //total clients that can be handled
 // #define MAX_GROUPS_NUM 10           //max number of groups that can be created in the server
@@ -104,32 +106,32 @@ int main(int argc, char **argv){
 
 void *clientHandler(void *socket_fd){
         int client_fd = *(int *)socket_fd;
-        struct Register reg; 
+        struct Init reg; 
         recv(client_fd, &reg,sizeof(reg),0);
         pthread_mutex_lock(&memberRegistrationMutex);
         if(memberCount >= MAX_MEMBERS){
-            printf("Rejected Client %s. Maximum Capacity Reached.\n", reg.name);
+            printf("Rejected Client %s. Maximum Capacity Reached.\n", reg.user_id);
             close(client_fd);
             pthread_cancel(clientHandlerThreads[memberCount]);
         }
-        printf("%s Joined the Group!\n",reg.name);
-        strcpy(members[memberCount], reg.name);
+        printf("%s Joined the Group!\n",reg.user_id);
+        strcpy(members[memberCount], reg.user_id);
         members_socks[memberCount++] = client_fd;
         pthread_mutex_unlock(&memberRegistrationMutex);
 
         message recvMessage;
         while(recv(client_fd, &recvMessage,sizeof(recvMessage),0)) {
-            if(recvMessage.message_type == 0){
-                printf("Group Message from %s: %s\n",recvMessage.sender,recvMessage.message);
+            if(recvMessage.msgtype == 0){
+                printf("Group Message from %s: %s\n",recvMessage.name,recvMessage.msg);
                 for(int j=0;j<memberCount;j++){
-                    if(strcmp(members[j], recvMessage.sender) != 0){
+                    if(strcmp(members[j], recvMessage.name) != 0){
                         send(members_socks[j], &recvMessage, sizeof(recvMessage),0); 
                     }
                 }
             } else {
-                printf("Direct Message from %s to %s: %s\n",recvMessage.sender,recvMessage.receiver,recvMessage.message);
+                printf("Direct Message from %s to %s: %s\n",recvMessage.name,recvMessage.recipient_id,recvMessage.msg);
                 for(int j=0;j<memberCount;j++){
-                    if(strcmp(members[j], recvMessage.receiver) == 0){
+                    if(strcmp(members[j], recvMessage.recipient_id) == 0){
                         send(members_socks[j], &recvMessage, sizeof(recvMessage),0); 
                     }
                 }
@@ -138,11 +140,11 @@ void *clientHandler(void *socket_fd){
 
         }
         
-        printf("%s left the group\n",reg.name);
+        printf("%s left the group\n",reg.user_id);
         pthread_mutex_lock(&memberRegistrationMutex);
         int exitedMember;
         for(int k=0;k<MAX_MEMBERS;k++){
-            if(strcmp(reg.name, members[k]) == 0){
+            if(strcmp(reg.user_id, members[k]) == 0){
                 exitedMember = k;
                 break;
             }
@@ -156,10 +158,10 @@ void *clientHandler(void *socket_fd){
 }
 
 void terminate(int num){
-    for(int i=0;i<MAX_MEMBERS;i++){
+    for(int i=0;i<memberCount;i++){
         pthread_kill(clientHandlerThreads[i],SIGKILL);
     }
-    for(int i=0;i<MAX_MEMBERS;i++){
+    for(int i=0;i<memberCount;i++){
         close(members_socks[i]);
     }
     close(socket_fd);
