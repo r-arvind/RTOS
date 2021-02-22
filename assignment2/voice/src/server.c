@@ -13,6 +13,7 @@
 #include <fcntl.h>
 #include "message.h"
 #include "audio.h"
+#include <sys/time.h>
 
 
 #define MAX_MEMBERS 10        //total clients that can be handled
@@ -121,16 +122,12 @@ void *clientHandler(void *socket_fd){
 	members_socks[memberCount++] = client_fd;
         pthread_mutex_unlock(&memberRegistrationMutex);
 	printf("3--------------------\n");
-        //voice recvMessage;
-	uint8 buf[1024];
-        while(recv(client_fd, buf,sizeof(buf),0)) {
-        	for(int j=0;j<memberCount;j++){
-                    if(strcmp(members[j], reg.user_id) != 0){
-		   	send(members_socks[j], buf, sizeof(buf),0); 
-			}
-	    	    }
-		    /*if(recvMessage.msgtype == 0){
-                printf("Group Message from %s\n %d",recvMessage.name, sizeof(recvMessage.msg));
+        voice recvMessage;
+        unsigned long t;	// uint8 buf[1024];
+        while(recv(client_fd, &recvMessage,sizeof(recvMessage),0)) {
+            t = (unsigned long)time(NULL);
+		    if(recvMessage.msgtype == 0){
+                printf("Group Message from %s\n %lu \n",recvMessage.name, t - recvMessage.timestamp);
                 for(int j=0;j<memberCount;j++){
                     if(strcmp(members[j], recvMessage.name) != 0){
                         send(members_socks[j], &recvMessage, sizeof(recvMessage),0); 
@@ -143,8 +140,7 @@ void *clientHandler(void *socket_fd){
                         send(members_socks[j], &recvMessage, sizeof(recvMessage),0); 
                     }
                 }
-            }*/
-        // recv(connection_fd, recvBuffer, MAXLENGTH, 0);
+            }
 
         }
         
