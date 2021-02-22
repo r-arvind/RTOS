@@ -119,7 +119,7 @@ void *clientHandler(void *socket_fd){
         members_socks[memberCount++] = client_fd;
         pthread_mutex_unlock(&memberRegistrationMutex);
 
-        message recvMessage;
+        voice recvMessage;
         while(recv(client_fd, &recvMessage,sizeof(recvMessage),0)) {
             if(recvMessage.msgtype == 0){
                 printf("Group Message from %s\n",recvMessage.name);

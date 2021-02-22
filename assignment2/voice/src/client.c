@@ -13,7 +13,7 @@
 int socket_fd;
 pthread_t read_thread;
 pthread_mutex_t stdinMutex;
-message myMessage;
+voice myMessage;
 
 //receive the data from the server
 void *recvMsg()
@@ -31,7 +31,7 @@ void *recvMsg()
 
 	for (;;) {
 
-		message m;
+		voice m;
         ssize_t r;
 
         if ((r = read(socket_fd, &m, sizeof(m))) <= 0) {
