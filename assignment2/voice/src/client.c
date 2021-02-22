@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include "message.h"
 #include "audio.h"
+#include <errno.h>
 
 int socket_fd;
 pthread_t read_thread;
@@ -17,13 +18,48 @@ message myMessage;
 //receive the data from the server
 void *recvMsg()
 {
-    for (;;)
-    {
-        int msg;
-        message m;
-        msg = recv(socket_fd, &m, sizeof(m), 0);
-        fprintf(stdout,"\33[2K\r%s : %sYour Message: ", m.name ,m.msg);
-        fflush(stdout);
+    pa_simple *s = NULL;
+    int err;
+    /* Create a new playback stream */
+    if (!(s = pa_simple_new(NULL, "receiver", PA_STREAM_PLAYBACK, NULL, "playback", &ss, NULL, NULL, &err))) {
+        fprintf(stderr, __FILE__ ": pa_simple_new() failed: %s\n", pa_strerror(err));
+        if (s){
+            pa_simple_free(s);
+        }
+        return NULL;
+    }
+
+	for (;;) {
+
+		message m;
+        ssize_t r;
+
+        if ((r = read(socket_fd, &m, sizeof(m))) <= 0) {
+            if (r == 0) /* EOF */
+                break;
+
+            fprintf(stderr, __FILE__": read() failed: %s\n", strerror(errno));
+                if (s){
+                    pa_simple_free(s);
+                }
+                return NULL;
+        }
+
+        if (pa_simple_write(s, m.msg, sizeof(m.msg), &err) < 0) {
+            fprintf(stderr, __FILE__": pa_simple_write() failed: %s\n", pa_strerror(err));
+            if (s){
+                pa_simple_free(s);
+                }
+            return NULL;
+        }
+    }
+    /* Make sure that every single sample was played */
+    if (pa_simple_drain(s, &err) < 0) {
+        fprintf(stderr, __FILE__": pa_simple_drain() failed: %s\n", pa_strerror(err));
+        if (s){
+            pa_simple_free(s);
+        }
+    return NULL;
     }
 }
 
@@ -88,21 +124,40 @@ int main(int argc, char *argv[])
     printf("Successfully joined the group\n");
     pthread_create(&read_thread, NULL, recvMsg, NULL);
     int type;
-    char receiver[20];
+    pa_simple *s = NULL;
+    int err = 0;
+    // char receiver[20];
+
+    if (!(s = pa_simple_new(NULL, myname, PA_STREAM_RECORD, NULL, "record", &ss, NULL, NULL, &err))) {
+        fprintf(stderr, __FILE__": pa_simple_new() failed: %s\n", pa_strerror(err));
+        if (s) {
+            pa_simple_free(s);
+            return 0;
+        }
+    }
+
     for (;;)
     {
         // pthread_mutex_lock(&stdinMutex);
-        printf("Your Message: ");
-        fgets(myMessage.msg, sizeof(myMessage.msg), stdin);
+        // printf("Your Message: ");
+        // fgets(myMessage.msg, sizeof(myMessage.msg), stdin);
         // pthread_mutex_unlock(&stdinMutex);
-        printf("Message Type (0 for GROUP or 1 for USER): ");
-		scanf("%d%*c",&type);
-        myMessage.msgtype = type;
-		if(type == 1){
-			printf("Enter reciever number: ");
-			scanf("%[^\n]%*c", receiver);
-            strcpy(myMessage.recipient_id,receiver);
-		}
+        // printf("Message Type (0 for GROUP or 1 for USER): ");
+		// scanf("%d%*c",&type);
+        if (pa_simple_read(s, myMessage.msg, sizeof(myMessage.msg), &err) < 0) {
+            fprintf(stderr, __FILE__": pa_simple_read() failed: %s\n", pa_strerror(err));
+            if (s) {
+                pa_simple_free(s);
+                return 0;
+            }
+        }
+
+        myMessage.msgtype = 0;
+		// if(type == 1){
+			// printf("Enter reciever number: ");
+			// scanf("%[^\n]%*c", receiver);
+            // strcpy(myMessage.recipient_id,receiver);
+		// }
         send(socket_fd, &myMessage, sizeof(myMessage), 0);
     }
 
