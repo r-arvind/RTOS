@@ -122,14 +122,14 @@ void *clientHandler(void *socket_fd){
         message recvMessage;
         while(recv(client_fd, &recvMessage,sizeof(recvMessage),0)) {
             if(recvMessage.msgtype == 0){
-                printf("Group Message from %s: %s\n",recvMessage.name,recvMessage.msg);
+                printf("Group Message from %s\n",recvMessage.name);
                 for(int j=0;j<memberCount;j++){
                     if(strcmp(members[j], recvMessage.name) != 0){
                         send(members_socks[j], &recvMessage, sizeof(recvMessage),0); 
                     }
                 }
             } else {
-                printf("Direct Message from %s to %s: %s\n",recvMessage.name,recvMessage.recipient_id,recvMessage.msg);
+                printf("Direct Message from %s to %s\n",recvMessage.name,recvMessage.recipient_id);
                 for(int j=0;j<memberCount;j++){
                     if(strcmp(members[j], recvMessage.recipient_id) == 0){
                         send(members_socks[j], &recvMessage, sizeof(recvMessage),0); 
