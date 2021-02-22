@@ -20,6 +20,7 @@ void *recvMsg()
 {
     pa_simple *s = NULL;
     int err;
+    uint8 buf[1024];
     /* Create a new playback stream */
     if (!(s = pa_simple_new(NULL, "receiver", PA_STREAM_PLAYBACK, NULL, "playback", &ss, NULL, NULL, &err))) {
         fprintf(stderr, __FILE__ ": pa_simple_new() failed: %s\n", pa_strerror(err));
@@ -34,7 +35,7 @@ void *recvMsg()
 		voice m;
         ssize_t r;
 
-        if ((r = read(socket_fd, &m, sizeof(m))) <= 0) {
+        if ((r = read(socket_fd, buf, sizeof(buf))) <= 0) {
             if (r == 0) /* EOF */
                 break;
 
@@ -45,7 +46,7 @@ void *recvMsg()
                 return NULL;
         }
 
-        if (pa_simple_write(s, m.msg, sizeof(m.msg), &err) < 0) {
+        if (pa_simple_write(s, buf, sizeof(buf), &err) < 0) {
             fprintf(stderr, __FILE__": pa_simple_write() failed: %s\n", pa_strerror(err));
             if (s){
                 pa_simple_free(s);
@@ -135,7 +136,7 @@ int main(int argc, char *argv[])
             return 0;
         }
     }
-
+    uint8 buf[1024];
     for (;;)
     {
         // pthread_mutex_lock(&stdinMutex);
@@ -144,7 +145,7 @@ int main(int argc, char *argv[])
         // pthread_mutex_unlock(&stdinMutex);
         // printf("Message Type (0 for GROUP or 1 for USER): ");
 		// scanf("%d%*c",&type);
-        if (pa_simple_read(s, myMessage.msg, sizeof(myMessage.msg), &err) < 0) {
+        if (pa_simple_read(s, buf, sizeof(buf), &err) < 0) {
             fprintf(stderr, __FILE__": pa_simple_read() failed: %s\n", pa_strerror(err));
             if (s) {
                 pa_simple_free(s);
@@ -152,13 +153,13 @@ int main(int argc, char *argv[])
             }
         }
 
-        myMessage.msgtype = 0;
+        // myMessage.msgtype = 0;
 		// if(type == 1){
 			// printf("Enter reciever number: ");
 			// scanf("%[^\n]%*c", receiver);
             // strcpy(myMessage.recipient_id,receiver);
 		// }
-        send(socket_fd, &myMessage, sizeof(myMessage), 0);
+        send(socket_fd, buf, sizeof(buf), 0);
     }
 
     // pthread_kill(read_thread, NULL);
