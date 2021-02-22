@@ -15,7 +15,7 @@
 #include "audio.h"
 
 
-#define MAX_MEMBERS 3        //total clients that can be handled
+#define MAX_MEMBERS 10        //total clients that can be handled
 // #define MAX_GROUPS_NUM 10           //max number of groups that can be created in the server
 // #define MAX_GROUP_SIZE 100          //number of members in a group
 #define MAILBOX_SIZE 1000               //size of message queue
@@ -78,7 +78,7 @@ int main(int argc, char **argv){
     printf("Socket bound Succesfuly\n"); 
   
     // Now server is ready to listen and verification 
-    if ((listen(socket_fd, 5)) != 0) { 
+    if ((listen(socket_fd, 10)) != 0) { 
         printf("Listen failed\n Exiting.....\n"); 
         exit(0); 
     }
@@ -108,7 +108,8 @@ void *clientHandler(void *socket_fd){
         int client_fd = *(int *)socket_fd;
         struct Init reg; 
         recv(client_fd, &reg,sizeof(reg),0);
-        pthread_mutex_lock(&memberRegistrationMutex);
+	printf("1--------------------\n"); 
+       pthread_mutex_lock(&memberRegistrationMutex);
         if(memberCount >= MAX_MEMBERS){
             printf("Rejected Client %s. Maximum Capacity Reached.\n", reg.user_id);
             close(client_fd);
@@ -116,26 +117,33 @@ void *clientHandler(void *socket_fd){
         }
         printf("%s Joined the Group!\n",reg.user_id);
         strcpy(members[memberCount], reg.user_id);
-        members_socks[memberCount++] = client_fd;
+        printf("2--------------------\n");
+	members_socks[memberCount++] = client_fd;
         pthread_mutex_unlock(&memberRegistrationMutex);
-
-        voice recvMessage;
-        while(recv(client_fd, &recvMessage,sizeof(recvMessage),0)) {
-            if(recvMessage.msgtype == 0){
-                printf("Group Message from %s\n",recvMessage.name);
+	printf("3--------------------\n");
+        //voice recvMessage;
+	uint8 buf[1024];
+        while(recv(client_fd, buf,sizeof(buf),0)) {
+        	for(int j=0;j<memberCount;j++){
+                    if(strcmp(members[j], reg.user_id) != 0){
+		   	send(members_socks[j], buf, sizeof(buf),0); 
+			}
+	    	    }
+		    /*if(recvMessage.msgtype == 0){
+                printf("Group Message from %s\n %d",recvMessage.name, sizeof(recvMessage.msg));
                 for(int j=0;j<memberCount;j++){
                     if(strcmp(members[j], recvMessage.name) != 0){
                         send(members_socks[j], &recvMessage, sizeof(recvMessage),0); 
                     }
                 }
             } else {
-                printf("Direct Message from %s to %s\n",recvMessage.name,recvMessage.recipient_id);
+                //printf("Direct Message from %s to %s\n",recvMessage.name,recvMessage.recipient_id);
                 for(int j=0;j<memberCount;j++){
                     if(strcmp(members[j], recvMessage.recipient_id) == 0){
                         send(members_socks[j], &recvMessage, sizeof(recvMessage),0); 
                     }
                 }
-            }
+            }*/
         // recv(connection_fd, recvBuffer, MAXLENGTH, 0);
 
         }
